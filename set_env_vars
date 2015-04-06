@@ -1,0 +1,1 @@
+export INFO_DESK_DATABASE_URL='postgres://postgres:test@localhost/infodesk'

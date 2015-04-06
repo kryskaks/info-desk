@@ -1,0 +1,30 @@
+<html>
+<body>
+	<p>Hello {{user}}!</p>
+
+	<form action="/users/new" method="post">
+		<input type="text" name="name" value="">
+		<input type="submit" value="new user">
+	</form>
+
+	<form action="/users/{{user_id}}" method="post">
+		<input type="text" name="name" value="">
+		<input type="submit" value="update user">
+	</form>
+
+	<form action="/users/{{user_id}}/access_list" method="post">
+		<input type="text" name="name" value="">
+		<input type="submit" value="update access_list user">
+	</form>
+
+	<form action="/users/{{user_id}}/role" method="post">
+		<input type="text" name="name" value="">
+		<input type="submit" value="update role user">
+	</form>
+	
+	<form action="/users/invalid" method="post">
+		<input type="text" name="name" value="">
+		<input type="submit" value="invalid action">
+	</form>
+</body>
+</html>
