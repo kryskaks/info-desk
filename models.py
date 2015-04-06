@@ -1,12 +1,13 @@
 # -*- coding: utf8 -*-
 import peewee
-from peewee import Model, CharField, DateTimeField, ForeignKeyField
+from peewee import Model, CharField, DateTimeField, ForeignKeyField, Field, PostgresqlDatabase
 from config import DATABASE_URL
 from playhouse.db_url import connect
 from passlib.hash import pbkdf2_sha256
 from datetime import datetime
 
 db = connect(DATABASE_URL)
+PostgresqlDatabase.register_fields({'password_hash': 'password_hash'})
 
 class _Model(Model):
 	class Meta:
@@ -20,38 +21,46 @@ class _Model(Model):
 	def get_by_id(cls, id):
 		return cls.get(cls.id == id)
 
+	@classmethod
+	def get_by_name(cls, name):
+		return cls.get(cls.name == name)		
+
 class Merchant(_Model):
 	w1_checkout_id = CharField()
 	name = CharField()
 	contacts = CharField()
-	w1_client_id = CharField()
+	#w1_client_id = CharField()
 
 	class Meta:
 		db_table = "merchants"
 
+class PasswordField(CharField):
+	db_field = 'password_hash'
+
+	def db_value(self, password):
+		return pbkdf2_sha256.encrypt(password, rounds = 200000, salt_size = 16)
+
+	def python_value(self, value):
+		return str(value)
+
 
 class User(_Model):
 	email = CharField(index = True, unique = True)
-	password_hash = CharField()
-	name = CharField()
-	created = DateTimeField()
+	password_hash = PasswordField()
+	name = CharField(unique = True)
+	created = DateTimeField(default = datetime.now())
 	last_logged_in = DateTimeField(null = True)
 	merchant = ForeignKeyField(Merchant, null = True)
 	role = CharField()
+	access_list = CharField(null = True)
 
 	class Meta:
 		db_table = "users"
 
-	@classmethod
-	def new(cls, email, password, name, role, merchant = None):
-		return User.create(
-			email = email,
-			password_hash = pbkdf2_sha256.encrypt(password, rounds=200000, salt_size=16),
-			name = name,
-			created = datetime.now(),
-			merchant = merchant,
-			role = role)		
-
+	def save_password(self, password):
+		self.password_hash = pbkdf2_sha256.encrypt(password, rounds = 200000, salt_size = 16)
+		self.save()		
+	
 	def verify_password(self, password):
 		return pbkdf2_sha256.verify(password, self.password_hash)
 
@@ -78,7 +87,7 @@ def init_db():
 	try:
 		drop_tables()
 		create_tables()
-
+		padmin = User.create(email = 'krementar@w1.ua', password = '123', name = 'padmin', role = 'projectAdmin')
 	except Exception, ex:
 		print ex
 		db.rollback()
